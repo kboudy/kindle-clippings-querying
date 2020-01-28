@@ -1,0 +1,26 @@
+{
+  "name": "kindle-bookmark-querying",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kboudy/kindle-bookmark-querying.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kboudy/kindle-bookmark-querying/issues"
+  },
+  "homepage": "https://github.com/kboudy/kindle-bookmark-querying#readme",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "lodash": "^4.17.15",
+    "moment": "^2.24.0",
+    "yargs": "^15.1.0"
+  }
+}

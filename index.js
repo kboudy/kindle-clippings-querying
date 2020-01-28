@@ -107,7 +107,6 @@ const writeCompletionFile = () => {
 };
 
 const processLineByLine = async function processLineByLine(filePath) {
-  let currentClipping = getEmptyClip();
   const rli = readline.createInterface({
     input: fs.createReadStream(filePath),
     crlfDelay: Infinity,
@@ -123,89 +122,12 @@ const processLineByLine = async function processLineByLine(filePath) {
     argv.query_book_title ||
     argv.query_author ||
     argv.query_highlighted_text;
+  const allClippings = [];
+  let currentClipping = getEmptyClip();
   for await (const line of rli) {
     resultNumber++;
     if (line.includes('======')) {
-      let outString = '';
-      let isFirst = true;
-
-      if (!currentClipping.highlightedText) {
-        currentClipping.highlightedText = '';
-      }
-      if (argv.query_book_title || argv.query) {
-        const regEx = new RegExp(argv.query || argv.query_book_title, 'i');
-        bookTitleMatch = currentClipping.bookTitle.match(regEx);
-      }
-      if (argv.query_author || argv.query) {
-        const regEx = new RegExp(argv.query || argv.query_author, 'i');
-        authorMatch = currentClipping.author.match(regEx);
-      }
-      if (argv.query_highlighted_text || argv.query) {
-        const regEx = new RegExp(
-          argv.query || argv.query_highlighted_text,
-          'i',
-        );
-        highlightedTextMatch = currentClipping.highlightedText.match(regEx);
-      }
-      const hasMatch = bookTitleMatch || authorMatch || highlightedTextMatch;
-      if (hasQueryArg && !hasMatch) {
-        currentClipping = getEmptyClip();
-        continue;
-      }
-      for (const f of outputFields) {
-        let renderedField = currentClipping[f];
-        const currentChalkColor = chalkColors[f];
-        if (f === '#') {
-          renderedField = `${resultNumber}`;
-        } else if (f === 'createdDate') {
-          renderedField = moment(currentClipping.createdDate).format(
-            'YYYY-MM-DD HH:mm',
-          );
-        } else if (f === 'bookTitle' && bookTitleMatch) {
-          const beforeMatch = currentClipping[f].slice(0, bookTitleMatch.index);
-          const match = bookTitleMatch[0];
-          const afterMatch = currentClipping[f].slice(
-            bookTitleMatch.index + match.length,
-          );
-          renderedField =
-            currentChalkColor(beforeMatch) +
-            chalk.black.bgYellowBright(match) +
-            currentChalkColor(afterMatch);
-        } else if (f === 'author' && authorMatch) {
-          const beforeMatch = currentClipping[f].slice(0, authorMatch.index);
-          const match = authorMatch[0];
-          const afterMatch = currentClipping[f].slice(
-            authorMatch.index + match.length,
-          );
-          renderedField =
-            currentChalkColor(beforeMatch) +
-            chalk.black.bgYellowBright(match) +
-            currentChalkColor(afterMatch);
-        } else if (f === 'highlightedText' && highlightedTextMatch) {
-          const beforeMatch = currentClipping[f].slice(
-            0,
-            highlightedTextMatch.index,
-          );
-          const match = highlightedTextMatch[0];
-          const afterMatch = currentClipping[f].slice(
-            highlightedTextMatch.index + match.length,
-          );
-          renderedField =
-            currentChalkColor(beforeMatch) +
-            chalk.black.bgYellowBright(match) +
-            currentChalkColor(afterMatch);
-        }
-        if (!isFirst) {
-          outString = outString + chalk.gray(',');
-        }
-        outString =
-          outString +
-          `${chalk.gray('"')}${currentChalkColor(renderedField)}${chalk.gray(
-            '"',
-          )}`;
-        isFirst = false;
-      }
-      console.log(outString);
+      allClippings.push(currentClipping);
       currentClipping = getEmptyClip();
     } else if (currentClipping.bookTitle === null) {
       const regExExtractTitleAndAuthor = /^(.*)(\()(.*)\)/;
@@ -232,6 +154,76 @@ const processLineByLine = async function processLineByLine(filePath) {
       currentClipping.highlightedText =
         (currentClipping.highlightedText || '') + line;
     }
+  }
+  for (const c of allClippings) {
+    resultNumber++;
+    let outString = '';
+    let isFirst = true;
+
+    if (!c.highlightedText) {
+      c.highlightedText = '';
+    }
+    if (argv.query_book_title || argv.query) {
+      const regEx = new RegExp(argv.query || argv.query_book_title, 'i');
+      bookTitleMatch = c.bookTitle.match(regEx);
+    }
+    if (argv.query_author || argv.query) {
+      const regEx = new RegExp(argv.query || argv.query_author, 'i');
+      authorMatch = c.author.match(regEx);
+    }
+    if (argv.query_highlighted_text || argv.query) {
+      const regEx = new RegExp(argv.query || argv.query_highlighted_text, 'i');
+      highlightedTextMatch = c.highlightedText.match(regEx);
+    }
+    const hasMatch = bookTitleMatch || authorMatch || highlightedTextMatch;
+    if (hasQueryArg && !hasMatch) {
+      continue;
+    }
+    for (const f of outputFields) {
+      let renderedField = c[f];
+      const currentChalkColor = chalkColors[f];
+      if (f === '#') {
+        renderedField = `${resultNumber}`;
+      } else if (f === 'createdDate') {
+        renderedField = moment(c.createdDate).format('YYYY-MM-DD HH:mm');
+      } else if (f === 'bookTitle' && bookTitleMatch) {
+        const beforeMatch = c[f].slice(0, bookTitleMatch.index);
+        const match = bookTitleMatch[0];
+        const afterMatch = c[f].slice(bookTitleMatch.index + match.length);
+        renderedField =
+          currentChalkColor(beforeMatch) +
+          chalk.black.bgYellowBright(match) +
+          currentChalkColor(afterMatch);
+      } else if (f === 'author' && authorMatch) {
+        const beforeMatch = c[f].slice(0, authorMatch.index);
+        const match = authorMatch[0];
+        const afterMatch = c[f].slice(authorMatch.index + match.length);
+        renderedField =
+          currentChalkColor(beforeMatch) +
+          chalk.black.bgYellowBright(match) +
+          currentChalkColor(afterMatch);
+      } else if (f === 'highlightedText' && highlightedTextMatch) {
+        const beforeMatch = c[f].slice(0, highlightedTextMatch.index);
+        const match = highlightedTextMatch[0];
+        const afterMatch = c[f].slice(
+          highlightedTextMatch.index + match.length,
+        );
+        renderedField =
+          currentChalkColor(beforeMatch) +
+          chalk.black.bgYellowBright(match) +
+          currentChalkColor(afterMatch);
+      }
+      if (!isFirst) {
+        outString = outString + chalk.gray(',');
+      }
+      outString =
+        outString +
+        `${chalk.gray('"')}${currentChalkColor(renderedField)}${chalk.gray(
+          '"',
+        )}`;
+      isFirst = false;
+    }
+    console.log(outString);
   }
 };
 
