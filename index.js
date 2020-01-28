@@ -3,6 +3,7 @@ const readline = require('readline'),
   path = require('path'),
   chalk = require('chalk'),
   homedir = require('os').homedir(),
+  _ = require('lodash'),
   moment = require('moment');
 
 const allFields = [
@@ -122,7 +123,7 @@ const processLineByLine = async function processLineByLine(filePath) {
     argv.query_book_title ||
     argv.query_author ||
     argv.query_highlighted_text;
-  const allClippings = [];
+  let allClippings = [];
   let currentClipping = getEmptyClip();
   for await (const line of rli) {
     resultNumber++;
@@ -154,6 +155,11 @@ const processLineByLine = async function processLineByLine(filePath) {
       currentClipping.highlightedText =
         (currentClipping.highlightedText || '') + line;
     }
+  }
+  if (argv.sort_descending) {
+    allClippings = _.orderBy(allClippings, c => -c.createdDate);
+  } else {
+    allClippings = _.orderBy(allClippings, c => c.createdDate);
   }
   for (const c of allClippings) {
     resultNumber++;
