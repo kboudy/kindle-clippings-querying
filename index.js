@@ -122,7 +122,17 @@ const processLineByLine = async function processLineByLine(filePath) {
     crlfDelay: Infinity
   });
 
-  let outputFields = allFields;
+  const outputFields = [];
+  for (const f of (argv.fields || allFields.join(","))
+    .split(",")
+    .map(f => f.trim())) {
+    const matchingField = allFields.filter(
+      fld => fld.toLowerCase() === f.toLowerCase()
+    );
+    if (matchingField.length > 0) {
+      outputFields.push(matchingField[0]);
+    }
+  }
   let resultNumber = 0;
   let bookTitleMatch = null;
   let authorMatch = null;
@@ -135,7 +145,6 @@ const processLineByLine = async function processLineByLine(filePath) {
   let allClippings = [];
   let currentClipping = getEmptyClip();
   for await (const line of rli) {
-    resultNumber++;
     if (line.includes("======")) {
       allClippings.push(currentClipping);
       currentClipping = getEmptyClip();
@@ -171,7 +180,6 @@ const processLineByLine = async function processLineByLine(filePath) {
     allClippings = _.orderBy(allClippings, c => c.createdDate);
   }
   for (const c of allClippings) {
-    resultNumber++;
     let outString = "";
     let isFirst = true;
 
@@ -199,6 +207,7 @@ const processLineByLine = async function processLineByLine(filePath) {
       const currentChalkColor = chalkColors[f];
       if (f === "#") {
         renderedField = `${resultNumber}`;
+        resultNumber++;
       } else if (f === "createdDate") {
         renderedField = moment(c.createdDate).format("YYYY-MM-DD HH:mm");
       } else if (f === "bookTitle" && bookTitleMatch) {
