@@ -42,11 +42,20 @@ const myClippingPath = path.join(
   "Dropbox/app_config/kindle-clippings-querying/My Clippings.txt"
 );
 
+const kindlePath = `/media/${
+  require("os").userInfo().username
+}/Kindle/Documents/My Clippings.txt`;
+
 const argOptions = {
   fields: {
     alias: "f",
     type: "string",
     description: `Comma-delimited field names (${allFields.join(",")})`
+  },
+  copy: {
+    alias: "c",
+    type: "boolean",
+    description: `Copy the "My Clippings.txt" file from your Kindle`
   },
   query: {
     alias: "q",
@@ -243,5 +252,22 @@ if (debugging) {
 writeCompletionFile();
 
 module.exports = () => {
-  processLineByLine(myClippingPath).catch(console.error);
+  if (argv.copy) {
+    if (!fs.existsSync(myClippingPath)) {
+      console.log(
+        chalk.red(
+          `Couldn't find the Kindle clipping file (make sure you've mounted it by running nautilus): ${chalk.white(
+            myClippingPath
+          )}`
+        )
+      );
+    } else {
+      fs.copyFileSync(myClippingPath, kindlePath);
+      console.log(
+        `Copied ${chalk.yellow(myClippingPath)} to ${chalk.green(kindlePath)}`
+      );
+    }
+  } else {
+    processLineByLine(myClippingPath).catch(console.error);
+  }
 };
